@@ -1,0 +1,229 @@
+/* Navbar Styles - Dark Theme */
+.navbar {
+  background-color: #0f172a;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  padding: 0 5%;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.navbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.navbar-brand h2 {
+  background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  font-size: 1.5rem;
+  margin: 0;
+  transition: transform 0.3s ease;
+}
+
+.navbar-brand h2:hover {
+  transform: scale(1.03);
+}
+
+.navbar-nav {
+  display: flex;
+  list-style: none;
+  gap: 30px;
+  margin: 0;
+  padding: 0;
+}
+
+.navbar-nav a {
+  text-decoration: none;
+  color: #e2e8f0;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+  padding: 8px 0;
+}
+
+.navbar-nav a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #6366f1, #3b82f6);
+  transition: width 0.3s ease;
+}
+
+.navbar-nav a:hover {
+  color: #3b82f6;
+}
+
+.navbar-nav a:hover::after {
+  width: 100%;
+}
+
+.navbar-actions {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #475569 0%, #334155 100%);
+  color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-secondary:hover {
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+  color: white;
+  box-shadow: 0 4px 6px rgba(99, 102, 241, 0.2);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(99, 102, 241, 0.3);
+}
+
+/* Mobile menu styles */
+.mobile-menu-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 30px;
+  height: 25px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 10;
+}
+
+.mobile-menu-btn span {
+  width: 30px;
+  height: 3px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  transition: all 0.3s linear;
+  position: relative;
+  transform-origin: 1px;
+}
+
+.mobile-actions {
+  display: none;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Hamburger animation */
+.mobile-menu-btn.open span:first-child {
+  transform: rotate(45deg);
+  background: #6366f1;
+}
+
+.mobile-menu-btn.open span:nth-child(2) {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.mobile-menu-btn.open span:last-child {
+  transform: rotate(-45deg);
+  background: #6366f1;
+}
+
+/* Responsive styles */
+@media (max-width: 992px) {
+  .navbar {
+    padding: 0 20px;
+  }
+  
+  .navbar-nav {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: flex;
+  }
+  
+  .navbar-nav {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: 70%;
+    max-width: 300px;
+    background: #1e293b;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    transform: translateX(100%);
+    transition: transform 0.3s ease-in-out;
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.3);
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  .navbar-nav.active {
+    transform: translateX(0);
+  }
+  
+  .navbar-nav a {
+    font-size: 1.2rem;
+    padding: 10px 0;
+  }
+  
+  .navbar-actions {
+    display: none;
+  }
+  
+  .mobile-actions {
+    display: flex;
+    margin-top: 30px;
+  }
+  
+  .mobile-actions .btn {
+    width: 180px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar-brand h2 {
+    font-size: 1.3rem;
+  }
+  
+  .navbar-nav {
+    width: 80%;
+  }
+}

@@ -1,0 +1,243 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #0f172a;
+  color: #e2e8f0;
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+
+}
+
+/* Button Styles */
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+  color: white;
+  box-shadow: 0 4px 6px rgba(99, 102, 241, 0.2);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(99, 102, 241, 0.3);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #475569 0%, #334155 100%);
+  color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-secondary:hover {
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Form Elements */
+input, textarea, select {
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+input::placeholder, textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* Card Styles */
+.card {
+  background: linear-gradient(145deg, #1e293b, #1e293b);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Link Styles */
+a {
+  color: #3b82f6;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: #60a5fa;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6366f1;
+}
+
+/* Selection Styling */
+::selection {
+  background-color: rgba(99, 102, 241, 0.3);
+  color: #e2e8f0;
+}
+
+/* Table Styles */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #1e293b;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+th, td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #334155;
+}
+
+th {
+  background-color: #0f172a;
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+tr:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+/* Code and Pre blocks */
+code, pre {
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-family: 'Fira Code', monospace;
+  color: #e2e8f0;
+}
+
+pre {
+  padding: 16px;
+  overflow-x: auto;
+}
+
+/* Alert/Notification Styles */
+.alert {
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  border-left: 4px solid;
+}
+
+.alert-success {
+  background-color: rgba(16, 185, 129, 0.1);
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.alert-error {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.alert-warning {
+  background-color: rgba(245, 158, 11, 0.1);
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+.alert-info {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+/* Loading Spinner */
+.spinner {
+  border: 3px solid #1e293b;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 16px;
+  }
+  
+  .btn {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+  
+  input, textarea, select {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+}
+
+/* Dark theme utility classes */
+.text-muted {
+  color: #94a3b8;
+}
+
+.bg-dark {
+  background-color: #0f172a;
+}
+
+.bg-darker {
+  background-color: #020617;
+}
+
+.border-dark {
+  border-color: #334155;
+}
