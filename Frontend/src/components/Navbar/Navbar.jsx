@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import './Navbar.css';
+import logo  from '../../assets/Logomain3.png';
+
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -16,7 +18,9 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="navbar-container">
         <div className="navbar-brand">
-          <h2>PDF Analyzer Pro</h2>
+          <img src="" alt="" />
+          <img className='mainlogo' src={logo} alt="" />
+       
         </div>
         
         <button 

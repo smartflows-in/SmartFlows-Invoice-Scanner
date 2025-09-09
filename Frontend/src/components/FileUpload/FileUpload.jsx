@@ -4,6 +4,14 @@ import Papa from 'papaparse';
 import axios from 'axios';
 import './FileUpload.css';
 import './Chatbot.css';
+import chatbot  from '../../assets/chatbot.svg';
+import sendmsg  from '../../assets/sendmsg.svg';
+
+
+
+
+
+
 
 const FileUpload = () => {
   const [files, setFiles] = useState([]);
@@ -15,19 +23,21 @@ const FileUpload = () => {
   const [showGraphModal, setShowGraphModal] = useState(false);
   const [graphContent, setGraphContent] = useState(null);
   const [selectedColumns, setSelectedColumns] = useState({
+    source_file: true,
     address: true,
     company_name: true,
-    date_and_time: true,
-    description: true,
-    due_date: true,
     invoice_number: true,
+    date: true,
+    due_date: true,
     item_code: true,
-    page_number: true,
+    description: true,
     quantity: true,
-    source_file: true,
-    total_price: true,
     unit_price: true,
+    total_price: true,
+    page_number: true
   });
+
+
   const [sessionId, setSessionId] = useState(null);
   const fileInputRef = useRef(null);
   const [showChatbot, setShowChatbot] = useState(false);
@@ -35,7 +45,7 @@ const FileUpload = () => {
   const [chatInput, setChatInput] = useState('');
   const chatContainerRef = useRef(null);
 
-  // Retry logic for frontend
+
   const retryRequest = async (config, maxRetries = 5, initialDelay = 2000) => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -143,6 +153,11 @@ const FileUpload = () => {
       const processResult = response.data;
       console.log('Process result:', processResult);
       setResult({ csv: processResult.data, json: processResult.json });
+
+
+
+
+
 
       // Upload JSON to chatbot API
       if (processResult.json) {
@@ -264,6 +279,7 @@ const FileUpload = () => {
 
       let botMessage;
       if (response.data.answer) {
+
         // Detect if the response contains a table or ASCII art
         const isTableOrAscii = response.data.answer.includes('|') || response.data.answer.includes('```');
         botMessage = {
@@ -328,13 +344,13 @@ const FileUpload = () => {
           </div>
           <p>Drag & Drop your PDF or image files here</p>
           <p className="upload-subtext">or click to browse files</p>
-          <p className="file-types">Supported formats: PDF, JPG, PNG, GIF</p>
+          <p className="file-types">Supported formats: PDF, JPG, PNG</p>
           <input
             type="file"
             ref={fileInputRef}
             onChange={handleFileChange}
             multiple
-            accept=".pdf,.jpg,.jpeg,.png,.gif"
+            accept=".pdf,.jpg,.jpeg,.png"
             style={{ display: 'none' }}
           />
         </div>
@@ -470,7 +486,7 @@ const FileUpload = () => {
 
       <div className="chatbot-container">
         <button className="chatbot-toggle-btn" onClick={toggleChatbot}>
-          <i className="fas fa-comment-alt"></i>
+          <i className="fas fa-comment-alt"><img  className='icons'  src={chatbot} alt="" /></i>
         </button>
         {showChatbot && (
           <div className="chatbot-window">
@@ -509,7 +525,7 @@ const FileUpload = () => {
                 className="chatbot-input"
               />
               <button type="submit" className="chatbot-send-btn">
-                <i className="fas fa-paper-plane"></i>
+                <i className="fas fa-paper-plane"><img src={sendmsg} alt="" /></i>
               </button>
             </form>
           </div>

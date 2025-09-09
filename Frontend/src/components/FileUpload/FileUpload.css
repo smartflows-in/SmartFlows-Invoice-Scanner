@@ -246,7 +246,7 @@
 
 .results-section {
   margin-top: 30px;
-  padding: 25px;
+
   background: linear-gradient(145deg, #1e293b, #1e293b);
   border-radius: 12px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
@@ -382,6 +382,7 @@
   background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
   border: none;
   color: white;
+  margin: 20px;
 }
 
 .btn-primary:hover {
