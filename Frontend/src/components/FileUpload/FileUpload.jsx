@@ -9,10 +9,6 @@ import sendmsg  from '../../assets/sendmsg.svg';
 
 
 
-
-
-
-
 const FileUpload = () => {
   const [files, setFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -27,7 +23,7 @@ const FileUpload = () => {
     address: true,
     company_name: true,
     invoice_number: true,
-    date: true,
+    date_and_time: true,
     due_date: true,
     item_code: true,
     description: true,
