@@ -14,6 +14,9 @@ const Navbar = () => {
     setIsMenuOpen(false);
   };
 
+
+
+  
   return (
     <nav className="navbar">
       <div className="navbar-container">
