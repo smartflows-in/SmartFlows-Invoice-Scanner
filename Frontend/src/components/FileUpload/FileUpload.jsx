@@ -209,14 +209,58 @@ const FileUpload = () => {
 
   const downloadCSV = () => {
     if (!result.csv) return;
-    const blob = new Blob([result.csv], { type: 'text/csv' });
+
+    // Parse the CSV to manipulate headers
+    const parsedCSV = Papa.parse(result.csv.trim(), { header: true, skipEmptyLines: true });
+    if (parsedCSV.errors.length > 0) {
+      console.error('PapaParse errors during CSV download:', parsedCSV.errors);
+      setError('Failed to parse CSV for download');
+      return;
+    }
+
+    // Map normalized headers to desired display headers
+    const displayHeaderMap = {
+      source_file: 'Source File',
+      address: 'Address',
+      company_name: 'Company Name',
+      invoice_number: 'Invoice Number',
+      date_and_time: 'Date',
+      due_date: 'Due Date',
+      item_code: 'Item Code',
+      description: 'Description',
+      quantity: 'Quantity',
+      unit_price: 'Unit Price',
+      total_price: 'Total Price',
+      page_number: 'Page No',
+    };
+
+    // Filter data to include only selected columns
+    const filteredData = parsedCSV.data.map((row) => {
+      const filteredRow = {};
+      Object.keys(selectedColumns).forEach((col) => {
+        if (selectedColumns[col] && row[col]) {
+          filteredRow[displayHeaderMap[col] || col] = row[col];
+        }
+      });
+      return filteredRow;
+    });
+
+    // Convert back to CSV with display headers
+    const csvOutput = Papa.unparse({
+      fields: Object.keys(selectedColumns)
+        .filter((col) => selectedColumns[col])
+        .map((col) => displayHeaderMap[col] || col),
+      data: filteredData,
+    });
+
+    const blob = new Blob([csvOutput], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = 'processed_invoices.csv';
     a.click();
     window.URL.revokeObjectURL(url);
-    console.log('CSV downloaded');
+    console.log('CSV downloaded with display headers');
   };
 
   const downloadJSON = () => {
