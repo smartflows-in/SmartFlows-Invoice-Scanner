@@ -4,10 +4,8 @@ import Papa from 'papaparse';
 import axios from 'axios';
 import './FileUpload.css';
 import './Chatbot.css';
-import chatbot  from '../../assets/chatbot.svg';
-import sendmsg  from '../../assets/sendmsg.svg';
-
-
+import chatbot from '../../assets/chatbot.svg';
+import sendmsg from '../../assets/sendmsg.svg';
 
 const FileUpload = () => {
   const [files, setFiles] = useState([]);
@@ -30,10 +28,8 @@ const FileUpload = () => {
     quantity: true,
     unit_price: true,
     total_price: true,
-    page_number: true
+    page_number: true,
   });
-
-
   const [sessionId, setSessionId] = useState(null);
   const fileInputRef = useRef(null);
   const [showChatbot, setShowChatbot] = useState(false);
@@ -41,19 +37,22 @@ const FileUpload = () => {
   const [chatInput, setChatInput] = useState('');
   const chatContainerRef = useRef(null);
 
-
   const retryRequest = async (config, maxRetries = 5, initialDelay = 2000) => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await axios(config);
       } catch (error) {
         if (
-          (error.code === 'ERR_NETWORK' || error.code === 'ECONNRESET' || error.code === 'ECONNABORTED' || error.response?.status === 502 || error.response?.status === 503) &&
+          (error.code === 'ERR_NETWORK' ||
+            error.code === 'ECONNRESET' ||
+            error.code === 'ECONNABORTED' ||
+            error.response?.status === 502 ||
+            error.response?.status === 503) &&
           attempt < maxRetries
         ) {
           const delay = initialDelay * Math.pow(2, attempt - 1);
           console.log(`Frontend retry attempt ${attempt} after ${delay}ms due to ${error.code || error.response?.status}`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
         }
         throw error;
@@ -62,15 +61,15 @@ const FileUpload = () => {
   };
 
   const handleFileChange = (e) => {
-    const selectedFiles = Array.from(e.target.files).filter(
-      file => file.type === 'application/pdf' || file.type.startsWith('image/')
+    const selectedFiles = Array.from(e.target.files).filter((file) =>
+      file.type === 'application/pdf' || file.type.startsWith('image/')
     );
     setFiles([...files, ...selectedFiles]);
     setResult({ csv: null, json: null });
     setError(null);
     setSessionId(null);
     setChatMessages([]);
-    console.log('Files selected:', selectedFiles.map(f => f.name));
+    console.log('Files selected:', selectedFiles.map((f) => f.name));
   };
 
   const handleDragOver = (e) => {
@@ -86,21 +85,21 @@ const FileUpload = () => {
     e.preventDefault();
     setIsDragging(false);
     const droppedFiles = Array.from(e.dataTransfer.files).filter(
-      file => file.type === 'application/pdf' || file.type.startsWith('image/')
+      (file) => file.type === 'application/pdf' || file.type.startsWith('image/')
     );
     setFiles([...files, ...droppedFiles]);
     setResult({ csv: null, json: null });
     setError(null);
     setSessionId(null);
     setChatMessages([]);
-    console.log('Files dropped:', droppedFiles.map(f => f.name));
+    console.log('Files dropped:', droppedFiles.map((f) => f.name));
   };
 
   const removeFile = (index) => {
     const newFiles = [...files];
     newFiles.splice(index, 1);
     setFiles(newFiles);
-    console.log('File removed, remaining:', newFiles.map(f => f.name));
+    console.log('File removed, remaining:', newFiles.map((f) => f.name));
   };
 
   const handleUploadClick = () => {
@@ -129,12 +128,13 @@ const FileUpload = () => {
 
   const handleModalSubmit = async () => {
     setShowModal(false);
-    console.log('Modal submitted, processing files:', files.map(f => f.name));
-    console.log('Selected columns:', Object.keys(selectedColumns).filter(col => selectedColumns[col]));
+    setResult({ csv: null, json: null });
+    console.log('Modal submitted, processing files:', files.map((f) => f.name));
+    console.log('Selected columns:', Object.keys(selectedColumns).filter((col) => selectedColumns[col]));
     try {
       const formData = new FormData();
-      files.forEach(file => formData.append('files', file));
-      formData.append('columns', JSON.stringify(Object.keys(selectedColumns).filter(col => selectedColumns[col])));
+      files.forEach((file) => formData.append('files', file));
+      formData.append('columns', JSON.stringify(Object.keys(selectedColumns).filter((col) => selectedColumns[col])));
 
       setIsProcessing(true);
       setError(null);
@@ -148,14 +148,14 @@ const FileUpload = () => {
 
       const processResult = response.data;
       console.log('Process result:', processResult);
+
+      // Validate response
+      if (!processResult.data || processResult.data.trim() === '') {
+        throw new Error('Empty CSV data received from backend');
+      }
+
       setResult({ csv: processResult.data, json: processResult.json });
 
-
-
-
-
-
-      // Upload JSON to chatbot API
       if (processResult.json) {
         const jsonBlob = new Blob([JSON.stringify(processResult.json)], { type: 'application/json' });
         const jsonFormData = new FormData();
@@ -182,18 +182,14 @@ const FileUpload = () => {
         }
       } else {
         setError('No JSON data available for chatbot session');
-        setChatMessages([
-          { sender: 'bot', text: 'No JSON data available for chatbot session' },
-        ]);
+        setChatMessages([{ sender: 'bot', text: 'No JSON data available for chatbot session' }]);
       }
 
       setFiles([]);
     } catch (err) {
       setError(`Failed to process files: ${err.message}`);
       console.error('Processing error:', err);
-      setChatMessages([
-        { sender: 'bot', text: `Processing error: ${err.message}` },
-      ]);
+      setChatMessages([{ sender: 'bot', text: `Processing error: ${err.message}` }]);
     } finally {
       setIsProcessing(false);
     }
@@ -255,13 +251,13 @@ const FileUpload = () => {
     if (!chatInput.trim()) return;
     if (!sessionId) {
       const errorMessage = { sender: 'bot', text: 'Please process an invoice first to start chatting.' };
-      setChatMessages(prev => [...prev, errorMessage]);
+      setChatMessages((prev) => [...prev, errorMessage]);
       console.log('Chatbot error: No session_id available');
       return;
     }
 
     const userMessage = { sender: 'user', text: chatInput };
-    setChatMessages(prev => [...prev, userMessage]);
+    setChatMessages((prev) => [...prev, userMessage]);
     setChatInput('');
 
     try {
@@ -275,8 +271,6 @@ const FileUpload = () => {
 
       let botMessage;
       if (response.data.answer) {
-
-        // Detect if the response contains a table or ASCII art
         const isTableOrAscii = response.data.answer.includes('|') || response.data.answer.includes('```');
         botMessage = {
           sender: 'bot',
@@ -289,7 +283,7 @@ const FileUpload = () => {
           text: response.data.error || 'No response from bot',
         };
       }
-      setChatMessages(prev => [...prev, botMessage]);
+      setChatMessages((prev) => [...prev, botMessage]);
       console.log('Chatbot response:', botMessage.text);
 
       if (response.data.graph) {
@@ -297,7 +291,7 @@ const FileUpload = () => {
           sender: 'bot',
           graph: response.data.graph,
         };
-        setChatMessages(prev => [...prev, graphMessage]);
+        setChatMessages((prev) => [...prev, graphMessage]);
         console.log('Graph received:', response.data.graph);
       }
     } catch (error) {
@@ -306,7 +300,7 @@ const FileUpload = () => {
         sender: 'bot',
         text: error.response?.data?.error || `Error: ${error.message}`,
       };
-      setChatMessages(prev => [...prev, errorMessage]);
+      setChatMessages((prev) => [...prev, errorMessage]);
     }
   };
 
@@ -316,9 +310,52 @@ const FileUpload = () => {
     }
   }, [chatMessages]);
 
-  const parsedCSV = result.csv ? Papa.parse(result.csv, { header: true, skipEmptyLines: true }) : null;
-  const tableData = parsedCSV?.data || [];
-  const tableHeaders = parsedCSV?.meta?.fields || [];
+  // Normalize headers from Render API to match selectedColumns
+  const headerMap = {
+    'Source File': 'source_file',
+    'Company Name': 'company_name',
+    'Invoice Number': 'invoice_number',
+    'Date': 'date_and_time',
+    'Due Date': 'due_date',
+    'Item Code': 'item_code',
+    'Unit Price': 'unit_price',
+    'Total Price': 'total_price',
+    'Page No': 'page_number',
+    'Address': 'address',
+    'Description': 'description',
+    'Quantity': 'quantity',
+  };
+
+  const parsedCSV = result.csv
+    ? Papa.parse(result.csv.trim(), { header: true, skipEmptyLines: true })
+    : null;
+
+  // Handle parsing errors in useEffect to avoid re-render loop
+  useEffect(() => {
+    if (parsedCSV?.errors?.length > 0) {
+      console.error('PapaParse errors:', parsedCSV.errors);
+      setError('Failed to parse CSV data');
+    }
+  }, [parsedCSV]);
+
+  const normalizedData = parsedCSV?.data
+    ? parsedCSV.data.map((row) => {
+        const normalizedRow = {};
+        Object.keys(row).forEach((key) => {
+          const normalizedKey = headerMap[key] || key.toLowerCase();
+          normalizedRow[normalizedKey] = row[key] || '';
+        });
+        return normalizedRow;
+      })
+    : [];
+  const tableData = normalizedData;
+  const tableHeaders = Object.keys(selectedColumns).filter((col) => selectedColumns[col]);
+
+  console.log('Raw CSV:', result.csv);
+  console.log('Parsed CSV:', parsedCSV);
+  console.log('Normalized Data:', normalizedData);
+  console.log('Table Data:', tableData);
+  console.log('Table Headers:', tableHeaders);
 
   return (
     <div className="file-upload-container">
@@ -404,7 +441,7 @@ const FileUpload = () => {
         </Modal.Header>
         <Modal.Body>
           <Form>
-            {Object.keys(selectedColumns).map(col => (
+            {Object.keys(selectedColumns).map((col) => (
               <Form.Check
                 key={col}
                 type="checkbox"
@@ -455,11 +492,11 @@ const FileUpload = () => {
             <Button variant="secondary" onClick={downloadJSON} className="mb-3">
               Download JSON
             </Button>
-            {tableData.length > 0 && (
+            {tableData.length > 0 ? (
               <Table striped bordered hover responsive>
                 <thead>
                   <tr>
-                    {tableHeaders.map(header => (
+                    {tableHeaders.map((header) => (
                       <th key={header}>{header.replace('_', ' ').toUpperCase()}</th>
                     ))}
                   </tr>
@@ -467,13 +504,15 @@ const FileUpload = () => {
                 <tbody>
                   {tableData.map((row, index) => (
                     <tr key={index}>
-                      {tableHeaders.map(header => (
-                        <td key={header}>{row[header]}</td>
+                      {tableHeaders.map((header) => (
+                        <td key={header}>{row[header] || 'N/A'}</td>
                       ))}
                     </tr>
                   ))}
                 </tbody>
               </Table>
+            ) : (
+              <p>No data available to display in table.</p>
             )}
             <pre>{result.csv.substring(0, 500)}...</pre>
           </div>
@@ -482,22 +521,32 @@ const FileUpload = () => {
 
       <div className="chatbot-container">
         <button className="chatbot-toggle-btn" onClick={toggleChatbot}>
-          <i className="fas fa-comment-alt"><img  className='icons'  src={chatbot} alt="" /></i>
+          <i className="fas fa-comment-alt">
+            <img className="icons" src={chatbot} alt="" />
+          </i>
         </button>
         {showChatbot && (
           <div className="chatbot-window">
             <div className="chatbot-header">
-              <h4>Invoice Chatbot {sessionId && <span>(Session ID: {sessionId})</span>}</h4>
+              <h4>
+                Invoice Chatbot {sessionId && <span>(Session ID: {sessionId})</span>}
+              </h4>
               <button className="chatbot-close-btn" onClick={toggleChatbot}>
                 <i className="fas fa-times"></i>
               </button>
             </div>
             <div className="chatbot-messages" ref={chatContainerRef}>
               {chatMessages.map((msg, index) => (
-                <div key={index} className={`chatbot-message ${msg.sender}${msg.graph || msg.isTableOrAscii ? ' graph' : ''}`}>
+                <div
+                  key={index}
+                  className={`chatbot-message ${msg.sender}${msg.graph || msg.isTableOrAscii ? ' graph' : ''}`}
+                >
                   {msg.text && !msg.isTableOrAscii && <span>{msg.text}</span>}
                   {msg.isTableOrAscii && (
-                    <pre className="formatted-text clickable" onClick={() => handleGraphClick({ text: msg.text })}>
+                    <pre
+                      className="formatted-text clickable"
+                      onClick={() => handleGraphClick({ text: msg.text })}
+                    >
                       {msg.text}
                     </pre>
                   )}
@@ -521,7 +570,9 @@ const FileUpload = () => {
                 className="chatbot-input"
               />
               <button type="submit" className="chatbot-send-btn">
-                <i className="fas fa-paper-plane"><img src={sendmsg} alt="" /></i>
+                <i className="fas fa-paper-plane">
+                  <img src={sendmsg} alt="" />
+                </i>
               </button>
             </form>
           </div>

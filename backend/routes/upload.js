@@ -5,6 +5,9 @@ const axios = require('axios');
 const Papa = require('papaparse');
 const FormData = require('form-data');
 require('dotenv').config();
+const cors = require('cors');
+
+router.use(cors());
 
 // Configure multer for in-memory storage
 const storage = multer.memoryStorage();
@@ -106,16 +109,45 @@ router.post('/process', upload.array('files', 10), async (req, res) => {
       throw new Error(`CSV processing failed: ${csvError.message}`);
     }
 
+    // Validate CSV response
+    if (!csvResponse.data || csvResponse.data.trim() === '') {
+      console.error('Empty CSV response from Render API');
+      throw new Error('Render API returned empty CSV data');
+    }
+
+    // Normalize CSV headers
+    const normalizedCSV = csvResponse.data
+      .replace('Source File', 'source_file')
+      .replace('Company Name', 'company_name')
+      .replace('Invoice Number', 'invoice_number')
+      .replace('Date', 'date_and_time')
+      .replace('Due Date', 'due_date')
+      .replace('Item Code', 'item_code')
+      .replace('Unit Price', 'unit_price')
+      .replace('Total Price', 'total_price')
+      .replace('Page No', 'page_number')
+      .replace('Address', 'address')
+      .replace('Description', 'description')
+      .replace('Quantity', 'quantity');
+
     // Convert CSV to JSON for chatbot
-    const parsedCSV = Papa.parse(csvResponse.data, { header: true, skipEmptyLines: true });
+    const parsedCSV = Papa.parse(normalizedCSV, { header: true, skipEmptyLines: true });
     if (parsedCSV.errors.length > 0) {
       console.error('CSV parsing errors:', parsedCSV.errors);
       throw new Error('Failed to parse CSV response');
     }
-    const jsonData = parsedCSV.data;
+    const jsonData = parsedCSV.data.map(row => {
+      const normalizedRow = {};
+      Object.keys(row).forEach(key => {
+        normalizedRow[key.toLowerCase()] = row[key] || '';
+      });
+      return normalizedRow;
+    });
+
+    console.log('Normalized JSON Data:', jsonData);
 
     // Filter CSV if columns are specified
-    let filteredCSV = csvResponse.data;
+    let filteredCSV = normalizedCSV;
     if (columns && Array.isArray(columns) && columns.length > 0) {
       const filteredData = parsedCSV.data.map(row => {
         const filteredRow = {};
@@ -239,7 +271,7 @@ router.post('/chatbot-analyze', async (req, res) => {
       5,
       2000
     );
-zzz
+
     console.log('✅ Chatbot analyze response:', response.data);
 
     res.status(200).json(response.data);
