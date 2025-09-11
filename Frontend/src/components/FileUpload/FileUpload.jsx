@@ -141,7 +141,7 @@ const FileUpload = () => {
       console.log('Sending files to /api/process');
 
       const response = await retryRequest({
-        url: 'http://localhost:5000/api/process',
+        url: 'https://invoice-scanner-backend.onrender.com/api/process',
         method: 'POST',
         data: formData,
       });
@@ -164,7 +164,7 @@ const FileUpload = () => {
         console.log('Uploading JSON to /api/chatbot-upload');
         try {
           const uploadResponse = await retryRequest({
-            url: 'http://localhost:5000/api/chatbot-upload',
+            url: 'https://invoice-scanner-backend.onrender.com/api/chatbot-upload',
             method: 'post',
             data: jsonFormData,
           });
@@ -267,7 +267,7 @@ const FileUpload = () => {
     try {
       console.log('Sending chat message:', { session_id: sessionId, question: chatInput });
       const response = await retryRequest({
-        url: 'http://localhost:5000/api/chatbot-analyze',
+        url: 'https://invoice-scanner-backend.onrender.com/api/chatbot-analyze',
         method: 'post',
         data: { session_id: sessionId, question: chatInput },
         headers: { 'Content-Type': 'application/json' },
