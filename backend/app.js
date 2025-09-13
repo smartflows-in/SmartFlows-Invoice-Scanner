@@ -9,7 +9,13 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(cors());
+// Allow only your Vercel frontend
+app.use(cors({
+  origin: "https://smartflows-invoice-scanner.vercel.app",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
 app.use(express.json());
 app.use('/api', uploadRoutes);
 
