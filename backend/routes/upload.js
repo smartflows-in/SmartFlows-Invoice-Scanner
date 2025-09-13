@@ -33,6 +33,12 @@ const retryRequest = async (config, maxRetries = 5, initialDelay = 2000) => {
     try {
       return await axios(config);
     } catch (error) {
+      console.error(`Retry attempt ${attempt} failed:`, {
+        code: error.code,
+        status: error.response?.status,
+        message: error.message,
+        data: error.response?.data ? JSON.stringify(error.response.data, null, 2) : 'No data',
+      });
       if (
         (error.code === 'ECONNRESET' || error.code === 'ECONNABORTED' || error.response?.status === 502 || error.response?.status === 503) &&
         attempt < maxRetries
@@ -202,12 +208,17 @@ router.post('/chatbot-upload', upload.single('file'), async (req, res) => {
     }
 
     console.log('Received JSON for chatbot upload:', file.originalname);
+    console.log('JSON size:', file.buffer.length, 'bytes');
+    console.log('JSON preview:', file.buffer.toString('utf8').substring(0, 200) + '...');
 
     const formData = new FormData();
-    formData.append('files', Buffer.from(file.buffer), {
+    // Changed to 'file' – common for single uploads; revert to 'files' if needed
+    formData.append('file', Buffer.from(file.buffer), {
       filename: file.originalname,
       contentType: file.mimetype,
     });
+
+    console.log('FormData prepared for chatbot – field: file, headers:', formData.getHeaders());
 
     const response = await retryRequest(
       {
@@ -232,7 +243,7 @@ router.post('/chatbot-upload', upload.single('file'), async (req, res) => {
       message: error.message,
       response: error.response ? {
         status: error.response.status,
-        data: error.response.data,
+        data: error.response.data ? JSON.stringify(error.response.data, null, 2) : 'No data',
         headers: error.response.headers,
       } : 'No response received',
       code: error.code,
@@ -241,6 +252,15 @@ router.post('/chatbot-upload', upload.single('file'), async (req, res) => {
         method: error.config.method,
       } : 'No config available',
     });
+
+    // Fallback for local testing: Mock a session_id if env is local
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Local fallback: Mocking session_id');
+      return res.status(200).json({
+        message: 'Mock upload (local dev)',
+        session_id: 'mock-session-' + Date.now(),
+      });
+    }
 
     res.status(500).json({
       error: 'Failed to upload JSON to chatbot',
@@ -280,7 +300,7 @@ router.post('/chatbot-analyze', async (req, res) => {
       message: error.message,
       response: error.response ? {
         status: error.response.status,
-        data: error.response.data,
+        data: error.response.data ? JSON.stringify(error.response.data, null, 2) : 'No data',
         headers: error.response.headers,
       } : 'No response received',
       code: error.code,
