@@ -1,3 +1,5 @@
+// Updated frontend React component with new backend proxy URL
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Modal, Button, Form, Table } from 'react-bootstrap';
 import Papa from 'papaparse';
@@ -142,7 +144,7 @@ const FileUpload = () => {
       console.log('Sending files to /api/process');
 
       const response = await retryRequest({
-        url: 'https://invoice-scanner-backend.onrender.com/api/process',
+        url: 'https://smartflows-invoice-scanner-production.up.railway.app/api/process',
         method: 'POST',
         data: formData,
       });
@@ -165,7 +167,7 @@ const FileUpload = () => {
         console.log('Uploading JSON to /api/chatbot-upload');
         try {
           const uploadResponse = await retryRequest({
-            url: 'https://invoice-scanner-backend.onrender.com/api/chatbot-upload',
+            url: 'https://smartflows-invoice-scanner-production.up.railway.app/api/chatbot-upload',
             method: 'post',
             data: jsonFormData,
           });
@@ -310,7 +312,7 @@ const FileUpload = () => {
     try {
       console.log('Sending chat message:', { session_id: sessionId, question: tempInput });
       const response = await retryRequest({
-        url: 'https://invoice-scanner-backend.onrender.com/api/chatbot-analyze',
+        url: 'https://smartflows-invoice-scanner-production.up.railway.app/api/chatbot-analyze',
         method: 'post',
         data: { session_id: sessionId, question: tempInput },
         headers: { 'Content-Type': 'application/json' },
