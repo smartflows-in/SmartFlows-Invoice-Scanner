@@ -35,6 +35,7 @@ const FileUpload = () => {
   const [showChatbot, setShowChatbot] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false); // New: For typing indicator
   const chatContainerRef = useRef(null);
 
   const retryRequest = async (config, maxRetries = 5, initialDelay = 2000) => {
@@ -302,16 +303,20 @@ const FileUpload = () => {
 
     const userMessage = { sender: 'user', text: chatInput };
     setChatMessages((prev) => [...prev, userMessage]);
+    const tempInput = chatInput;
     setChatInput('');
+    setIsLoading(true); // Show typing indicator
 
     try {
-      console.log('Sending chat message:', { session_id: sessionId, question: chatInput });
+      console.log('Sending chat message:', { session_id: sessionId, question: tempInput });
       const response = await retryRequest({
         url: 'https://invoice-scanner-backend.onrender.com/api/chatbot-analyze',
         method: 'post',
-        data: { session_id: sessionId, question: chatInput },
+        data: { session_id: sessionId, question: tempInput },
         headers: { 'Content-Type': 'application/json' },
       });
+
+      setIsLoading(false); // Hide typing indicator
 
       let botMessage;
       if (response.data.answer) {
@@ -339,6 +344,7 @@ const FileUpload = () => {
         console.log('Graph received:', response.data.graph);
       }
     } catch (error) {
+      setIsLoading(false); // Hide typing indicator on error
       console.error('Chatbot error:', error);
       const errorMessage = {
         sender: 'bot',
@@ -352,7 +358,7 @@ const FileUpload = () => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [chatMessages]);
+  }, [chatMessages, isLoading]);
 
   // Normalize headers from Render API to match selectedColumns
   const headerMap = {
@@ -579,13 +585,18 @@ const FileUpload = () => {
                 <i className="fas fa-times"></i>
               </button>
             </div>
+
             <div className="chatbot-messages" ref={chatContainerRef}>
               {chatMessages.map((msg, index) => (
                 <div
                   key={index}
-                  className={`chatbot-message ${msg.sender}${msg.graph || msg.isTableOrAscii ? ' graph' : ''}`}
+                  className={`chatbot-message ${msg.sender}${msg.graph || (msg.isTableOrAscii && !msg.text) ? ' graph' : ''}`}
                 >
-                  {msg.text && !msg.isTableOrAscii && <span>{msg.text}</span>}
+                  {msg.text && !msg.isTableOrAscii && (
+                    <div className="message-content">
+                      <p className="message-paragraph">{msg.text}</p>
+                    </div>
+                  )}
                   {msg.isTableOrAscii && (
                     <pre
                       className="formatted-text clickable"
@@ -604,7 +615,19 @@ const FileUpload = () => {
                   )}
                 </div>
               ))}
+              {isLoading && (
+                <div className="typing-indicator">
+                  <div className="message-content">
+                    <div className="typing-dots">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
+            
             <form className="chatbot-input-form" onSubmit={handleChatSubmit}>
               <input
                 type="text"
@@ -612,8 +635,9 @@ const FileUpload = () => {
                 onChange={handleChatInputChange}
                 placeholder="Ask about your invoices..."
                 className="chatbot-input"
+                disabled={isLoading}
               />
-              <button type="submit" className="chatbot-send-btn">
+              <button type="submit" className="chatbot-send-btn" disabled={isLoading}>
                 <i className="fas fa-paper-plane">
                   <img src={sendmsg} alt="" />
                 </i>
