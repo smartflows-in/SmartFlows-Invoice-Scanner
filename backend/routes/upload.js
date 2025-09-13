@@ -5,9 +5,6 @@ const axios = require('axios');
 const Papa = require('papaparse');
 const FormData = require('form-data');
 require('dotenv').config();
-const cors = require('cors');
-
-router.use(cors());
 
 // Configure multer for in-memory storage
 const storage = multer.memoryStorage();
@@ -31,20 +28,24 @@ const upload = multer({
 const retryRequest = async (config, maxRetries = 5, initialDelay = 2000) => {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      return await axios(config);
-    } catch (error) {
-      console.error(`Retry attempt ${attempt} failed:`, {
-        code: error.code,
-        status: error.response?.status,
-        message: error.message,
-        data: error.response?.data ? JSON.stringify(error.response.data, null, 2) : 'No data',
+      console.log(`Backend attempt ${attempt} to ${config.url}`);
+      const response = await axios(config);
+      console.log(`Response from ${config.url}:`, {
+        status: response.status,
+        dataLength: response.data?.length || 'No data',
+        headers: response.headers,
       });
-      if (
-        (error.code === 'ECONNRESET' || error.code === 'ECONNABORTED' || error.response?.status === 502 || error.response?.status === 503) &&
-        attempt < maxRetries
-      ) {
+      return response;
+    } catch (error) {
+      const isRetryable = error.code === 'ECONNRESET' ||
+                         error.code === 'ECONNABORTED' ||
+                         error.code === 'ETIMEDOUT' ||
+                         error.response?.status === 502 ||
+                         error.response?.status === 503 ||
+                         error.response?.status === 500;
+      if (isRetryable && attempt < maxRetries) {
         const delay = initialDelay * Math.pow(2, attempt - 1);
-        console.log(`Retry attempt ${attempt} after ${delay}ms due to ${error.code || error.response?.status || 'error'}`);
+        console.log(`Backend retry attempt ${attempt} after ${delay}ms due to ${error.code || error.response?.status || 'error'}`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
@@ -53,7 +54,7 @@ const retryRequest = async (config, maxRetries = 5, initialDelay = 2000) => {
   }
 };
 
-// Process files by sending to Render API (CSV only)
+// Process files by sending to Invoice Processor API (CSV only)
 router.post('/process', upload.array('files', 10), async (req, res) => {
   try {
     const files = req.files;
@@ -66,6 +67,12 @@ router.post('/process', upload.array('files', 10), async (req, res) => {
     console.log('Processing request received with files:', files.map(f => f.originalname));
     console.log('Selected columns:', columns);
 
+    // Validate environment variable
+    if (!process.env.INVOICE_PROCESSING_API_URL) {
+      console.error('INVOICE_PROCESSING_API_URL is not set');
+      return res.status(500).json({ error: 'Server configuration error: Missing INVOICE_PROCESSING_API_URL' });
+    }
+
     // Validate file types
     const invalidFiles = files.filter(file => !['application/pdf', 'image/jpeg', 'image/png', 'image/gif'].includes(file.mimetype));
     if (invalidFiles.length > 0) {
@@ -75,7 +82,7 @@ router.post('/process', upload.array('files', 10), async (req, res) => {
       });
     }
 
-    // Prepare form-data for Render API
+    // Prepare form-data for Invoice Processor API
     const formData = new FormData();
     files.forEach(file => {
       formData.append('files', Buffer.from(file.buffer), {
@@ -85,7 +92,7 @@ router.post('/process', upload.array('files', 10), async (req, res) => {
     });
     formData.append('columns', JSON.stringify(columns));
 
-    console.log('Sending to Render API with files:', files.map(f => f.originalname));
+    console.log('Sending to Invoice Processor API:', files.map(f => f.originalname));
 
     // Call /process-invoices for CSV
     let csvResponse;
@@ -101,9 +108,13 @@ router.post('/process', upload.array('files', 10), async (req, res) => {
         5,
         2000
       );
-      console.log('✅ Render API CSV response:', csvResponse.data);
+      console.log('✅ Invoice Processor API response:', {
+        status: csvResponse.status,
+        data: csvResponse.data.substring(0, 500), // Log first 500 chars
+        dataLength: csvResponse.data?.length || 'No data',
+      });
     } catch (csvError) {
-      console.error('❌ Render API CSV error:', {
+      console.error('❌ Invoice Processor API error:', {
         message: csvError.message,
         response: csvError.response ? {
           status: csvError.response.status,
@@ -112,13 +123,19 @@ router.post('/process', upload.array('files', 10), async (req, res) => {
         } : 'No response received',
         code: csvError.code,
       });
-      throw new Error(`CSV processing failed: ${csvError.message}`);
+      return res.status(502).json({
+        error: 'Failed to process files at upstream API',
+        details: csvError.response?.data?.error || csvError.message,
+      });
     }
 
     // Validate CSV response
-    if (!csvResponse.data || csvResponse.data.trim() === '') {
-      console.error('Empty CSV response from Render API');
-      throw new Error('Render API returned empty CSV data');
+    if (!csvResponse.data || typeof csvResponse.data !== 'string' || csvResponse.data.trim() === '') {
+      console.error('Invalid or empty CSV response from Invoice Processor API:', csvResponse.data);
+      return res.status(500).json({ 
+        error: 'Upstream API returned invalid or empty CSV data',
+        details: csvResponse.data || 'No data received'
+      });
     }
 
     // Normalize CSV headers
@@ -140,7 +157,10 @@ router.post('/process', upload.array('files', 10), async (req, res) => {
     const parsedCSV = Papa.parse(normalizedCSV, { header: true, skipEmptyLines: true });
     if (parsedCSV.errors.length > 0) {
       console.error('CSV parsing errors:', parsedCSV.errors);
-      throw new Error('Failed to parse CSV response');
+      return res.status(500).json({ 
+        error: 'Failed to parse CSV response', 
+        details: parsedCSV.errors 
+      });
     }
     const jsonData = parsedCSV.data.map(row => {
       const normalizedRow = {};
@@ -175,6 +195,7 @@ router.post('/process', upload.array('files', 10), async (req, res) => {
   } catch (error) {
     console.error('❌ Process error:', {
       message: error.message,
+      stack: error.stack,
       response: error.response ? {
         status: error.response.status,
         data: error.response.data,
@@ -189,7 +210,7 @@ router.post('/process', upload.array('files', 10), async (req, res) => {
 
     res.status(500).json({
       error: 'Failed to process files',
-      details: error.message,
+      details: error.response?.data?.error || error.message,
     });
   }
 });
@@ -208,17 +229,12 @@ router.post('/chatbot-upload', upload.single('file'), async (req, res) => {
     }
 
     console.log('Received JSON for chatbot upload:', file.originalname);
-    console.log('JSON size:', file.buffer.length, 'bytes');
-    console.log('JSON preview:', file.buffer.toString('utf8').substring(0, 200) + '...');
 
     const formData = new FormData();
-    // Changed to 'file' – common for single uploads; revert to 'files' if needed
-    formData.append('file', Buffer.from(file.buffer), {
+    formData.append('files', Buffer.from(file.buffer), {
       filename: file.originalname,
       contentType: file.mimetype,
     });
-
-    console.log('FormData prepared for chatbot – field: file, headers:', formData.getHeaders());
 
     const response = await retryRequest(
       {
@@ -241,9 +257,10 @@ router.post('/chatbot-upload', upload.single('file'), async (req, res) => {
   } catch (error) {
     console.error('❌ Chatbot upload error:', {
       message: error.message,
+      stack: error.stack,
       response: error.response ? {
         status: error.response.status,
-        data: error.response.data ? JSON.stringify(error.response.data, null, 2) : 'No data',
+        data: error.response.data,
         headers: error.response.headers,
       } : 'No response received',
       code: error.code,
@@ -253,18 +270,9 @@ router.post('/chatbot-upload', upload.single('file'), async (req, res) => {
       } : 'No config available',
     });
 
-    // Fallback for local testing: Mock a session_id if env is local
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Local fallback: Mocking session_id');
-      return res.status(200).json({
-        message: 'Mock upload (local dev)',
-        session_id: 'mock-session-' + Date.now(),
-      });
-    }
-
     res.status(500).json({
       error: 'Failed to upload JSON to chatbot',
-      details: error.message,
+      details: error.response?.data?.error || error.message,
     });
   }
 });
@@ -298,9 +306,10 @@ router.post('/chatbot-analyze', async (req, res) => {
   } catch (error) {
     console.error('❌ Chatbot analyze error:', {
       message: error.message,
+      stack: error.stack,
       response: error.response ? {
         status: error.response.status,
-        data: error.response.data ? JSON.stringify(error.response.data, null, 2) : 'No data',
+        data: error.response.data,
         headers: error.response.headers,
       } : 'No response received',
       code: error.code,
@@ -312,14 +321,17 @@ router.post('/chatbot-analyze', async (req, res) => {
 
     res.status(500).json({
       error: 'Failed to analyze invoice',
-      details: error.message,
+      details: error.response?.data?.error || error.message,
     });
   }
 });
 
 // Error handling middleware for multer
 router.use((error, req, res, next) => {
-  console.error('Multer error:', error);
+  console.error('Multer error:', {
+    message: error.message,
+    code: error.code,
+  });
 
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
