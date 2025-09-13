@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Modal, Button, Form, Table, Alert } from 'react-bootstrap';
+import { Modal, Button, Form, Table } from 'react-bootstrap';
 import Papa from 'papaparse';
 import axios from 'axios';
 import './FileUpload.css';
@@ -35,32 +35,22 @@ const FileUpload = () => {
   const [showChatbot, setShowChatbot] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // New: For typing indicator
   const chatContainerRef = useRef(null);
-
-  const API_BASE_URL = 'https://smartflows-invoice-scanner-production.up.railway.app';
-  // Fallback to Render if Railway fails
-  // const API_BASE_URL = 'https://invoice-scanner-backend.onrender.com';
 
   const retryRequest = async (config, maxRetries = 5, initialDelay = 2000) => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`Frontend attempt ${attempt} to ${config.url}`);
-        const response = await axios(config);
-        console.log(`Response from ${config.url}:`, {
-          status: response.status,
-          dataLength: response.data?.length || 'No data',
-        });
-        return response;
+        return await axios(config);
       } catch (error) {
-        const isRetryable = error.code === 'ERR_NETWORK' ||
-                           error.code === 'ECONNRESET' ||
-                           error.code === 'ECONNABORTED' ||
-                           error.code === 'ETIMEDOUT' ||
-                           error.response?.status === 502 ||
-                           error.response?.status === 503 ||
-                           error.response?.status === 500;
-        if (isRetryable && attempt < maxRetries) {
+        if (
+          (error.code === 'ERR_NETWORK' ||
+            error.code === 'ECONNRESET' ||
+            error.code === 'ECONNABORTED' ||
+            error.response?.status === 502 ||
+            error.response?.status === 503) &&
+          attempt < maxRetries
+        ) {
           const delay = initialDelay * Math.pow(2, attempt - 1);
           console.log(`Frontend retry attempt ${attempt} after ${delay}ms due to ${error.code || error.response?.status}`);
           await new Promise((resolve) => setTimeout(resolve, delay));
@@ -119,7 +109,7 @@ const FileUpload = () => {
 
   const handleAnalyzeClick = () => {
     if (files.length === 0 && !result.csv) {
-      setError('Please select at least one file to analyze.');
+      setError('Please select at least one file');
       return;
     }
     setShowModal(true);
@@ -152,10 +142,9 @@ const FileUpload = () => {
       console.log('Sending files to /api/process');
 
       const response = await retryRequest({
-        url: `${API_BASE_URL}/api/process`,
+        url: 'https://invoice-scanner-backend.onrender.com/api/process',
         method: 'POST',
         data: formData,
-        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
       const processResult = response.data;
@@ -163,20 +152,20 @@ const FileUpload = () => {
 
       // Validate response
       if (!processResult.data || processResult.data.trim() === '') {
-        throw new Error(processResult.details || 'Empty or invalid CSV data received from backend');
+        throw new Error('Empty CSV data received from backend');
       }
 
       setResult({ csv: processResult.data, json: processResult.json });
 
-      if (processResult.json && Array.isArray(processResult.json) && processResult.json.length > 0) {
+      if (processResult.json) {
         const jsonBlob = new Blob([JSON.stringify(processResult.json)], { type: 'application/json' });
         const jsonFormData = new FormData();
-        jsonFormData.append('files', jsonBlob, 'processed_invoices.json'); // Match API field name
+        jsonFormData.append('file', jsonBlob, 'processed_invoices.json');
 
         console.log('Uploading JSON to /api/chatbot-upload');
         try {
           const uploadResponse = await retryRequest({
-            url: `${API_BASE_URL}/api/chatbot-upload`,
+            url: 'https://invoice-scanner-backend.onrender.com/api/chatbot-upload',
             method: 'post',
             data: jsonFormData,
           });
@@ -187,29 +176,21 @@ const FileUpload = () => {
           ]);
         } catch (uploadError) {
           console.error('JSON upload error:', uploadError);
-          setError(`Failed to start chatbot session: ${uploadError.response?.data?.error || uploadError.message}`);
+          setError(`Failed to start chatbot session: ${uploadError.message}`);
           setChatMessages([
-            { sender: 'bot', text: `Failed to start chatbot session: ${uploadError.response?.data?.error || uploadError.message}` },
+            { sender: 'bot', text: `Failed to start chatbot session: ${uploadError.message}` },
           ]);
         }
       } else {
-        setError('No valid JSON data available for chatbot session');
-        setChatMessages([{ sender: 'bot', text: 'No valid JSON data available for chatbot session' }]);
+        setError('No JSON data available for chatbot session');
+        setChatMessages([{ sender: 'bot', text: 'No JSON data available for chatbot session' }]);
       }
 
       setFiles([]);
     } catch (err) {
-      const errorMessage = err.response?.data?.details || err.response?.data?.error || err.message || 'Unknown error occurred';
-      setError(`Failed to process files: ${errorMessage}`);
-      console.error('Processing error:', {
-        message: err.message,
-        response: err.response ? {
-          status: err.response.status,
-          data: err.response.data,
-        } : 'No response',
-        code: err.code,
-      });
-      setChatMessages([{ sender: 'bot', text: `Processing error: ${errorMessage}` }]);
+      setError(`Failed to process files: ${err.message}`);
+      console.error('Processing error:', err);
+      setChatMessages([{ sender: 'bot', text: `Processing error: ${err.message}` }]);
     } finally {
       setIsProcessing(false);
     }
@@ -228,11 +209,9 @@ const FileUpload = () => {
   };
 
   const downloadCSV = () => {
-    if (!result.csv) {
-      setError('No CSV data available to download.');
-      return;
-    }
+    if (!result.csv) return;
 
+    // Parse the CSV to manipulate headers
     const parsedCSV = Papa.parse(result.csv.trim(), { header: true, skipEmptyLines: true });
     if (parsedCSV.errors.length > 0) {
       console.error('PapaParse errors during CSV download:', parsedCSV.errors);
@@ -240,6 +219,7 @@ const FileUpload = () => {
       return;
     }
 
+    // Map normalized headers to desired display headers
     const displayHeaderMap = {
       source_file: 'Source File',
       address: 'Address',
@@ -255,6 +235,7 @@ const FileUpload = () => {
       page_number: 'Page No',
     };
 
+    // Filter data to include only selected columns
     const filteredData = parsedCSV.data.map((row) => {
       const filteredRow = {};
       Object.keys(selectedColumns).forEach((col) => {
@@ -265,6 +246,7 @@ const FileUpload = () => {
       return filteredRow;
     });
 
+    // Convert back to CSV with display headers
     const csvOutput = Papa.unparse({
       fields: Object.keys(selectedColumns)
         .filter((col) => selectedColumns[col])
@@ -283,10 +265,7 @@ const FileUpload = () => {
   };
 
   const downloadJSON = () => {
-    if (!result.json) {
-      setError('No JSON data available to download.');
-      return;
-    }
+    if (!result.json) return;
     const blob = new Blob([JSON.stringify(result.json, null, 2)], { type: 'application/json' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -326,18 +305,18 @@ const FileUpload = () => {
     setChatMessages((prev) => [...prev, userMessage]);
     const tempInput = chatInput;
     setChatInput('');
-    setIsLoading(true);
+    setIsLoading(true); // Show typing indicator
 
     try {
       console.log('Sending chat message:', { session_id: sessionId, question: tempInput });
       const response = await retryRequest({
-        url: `${API_BASE_URL}/api/chatbot-analyze`,
+        url: 'https://invoice-scanner-backend.onrender.com/api/chatbot-analyze',
         method: 'post',
         data: { session_id: sessionId, question: tempInput },
         headers: { 'Content-Type': 'application/json' },
       });
 
-      setIsLoading(false);
+      setIsLoading(false); // Hide typing indicator
 
       let botMessage;
       if (response.data.answer) {
@@ -365,15 +344,8 @@ const FileUpload = () => {
         console.log('Graph received:', response.data.graph);
       }
     } catch (error) {
-      setIsLoading(false);
-      console.error('Chatbot error:', {
-        message: error.message,
-        response: error.response ? {
-          status: error.response.status,
-          data: error.response.data,
-        } : 'No response',
-        code: error.code,
-      });
+      setIsLoading(false); // Hide typing indicator on error
+      console.error('Chatbot error:', error);
       const errorMessage = {
         sender: 'bot',
         text: error.response?.data?.error || `Error: ${error.message}`,
@@ -388,6 +360,7 @@ const FileUpload = () => {
     }
   }, [chatMessages, isLoading]);
 
+  // Normalize headers from Render API to match selectedColumns
   const headerMap = {
     'Source File': 'source_file',
     'Company Name': 'company_name',
@@ -407,10 +380,11 @@ const FileUpload = () => {
     ? Papa.parse(result.csv.trim(), { header: true, skipEmptyLines: true })
     : null;
 
+  // Handle parsing errors in useEffect to avoid re-render loop
   useEffect(() => {
     if (parsedCSV?.errors?.length > 0) {
       console.error('PapaParse errors:', parsedCSV.errors);
-      setError('Failed to parse CSV data from backend');
+      setError('Failed to parse CSV data');
     }
   }, [parsedCSV]);
 
@@ -465,11 +439,7 @@ const FileUpload = () => {
         </div>
       </div>
 
-      {error && (
-        <Alert variant="danger" onClose={() => setError(null)} dismissible>
-          {error}
-        </Alert>
-      )}
+      {error && <div className="error-message">{error}</div>}
 
       {files.length > 0 && (
         <div className="files-preview">
@@ -592,11 +562,9 @@ const FileUpload = () => {
                 </tbody>
               </Table>
             ) : (
-              <Alert variant="warning">
-                No data available to display in table. Please check the uploaded files or try again.
-              </Alert>
+              <p>No data available to display in table.</p>
             )}
-            <pre>{result.csv?.substring(0, 500)}...</pre>
+            <pre>{result.csv.substring(0, 500)}...</pre>
           </div>
         </div>
       )}
@@ -659,7 +627,7 @@ const FileUpload = () => {
                 </div>
               )}
             </div>
-
+            
             <form className="chatbot-input-form" onSubmit={handleChatSubmit}>
               <input
                 type="text"
