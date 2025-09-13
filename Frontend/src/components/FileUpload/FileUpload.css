@@ -490,8 +490,11 @@
   .upload-icon i {
     font-size: 2.5rem;
   }
-  
+  .file-info {
+    width: 70vw;
+  }
   .file-item {
+    width: 70vw;
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
