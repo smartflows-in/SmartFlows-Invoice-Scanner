@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import './Navbar.css';
-import logo  from '../../assets/Logomain3.png';
-
+import logo from '../../assets/Logomain3.png';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -14,20 +14,15 @@ const Navbar = () => {
     setIsMenuOpen(false);
   };
 
-
-
-  
   return (
     <nav className="navbar">
       <div className="navbar-container">
         <div className="navbar-brand">
-          <img src="" alt="" />
-          <img className='mainlogo' src={logo} alt="" />
-       
+          <img className="mainlogo" src={logo} alt="Invoice Analysis Logo" />
         </div>
         
-        <button 
-          className={`mobile-menu-btn ${isMenuOpen ? 'open' : ''}`} 
+        <button
+          className={`mobile-menu-btn ${isMenuOpen ? 'open' : ''}`}
           onClick={toggleMenu}
           aria-label="Toggle navigation menu"
         >
@@ -37,16 +32,22 @@ const Navbar = () => {
         </button>
         
         <ul className={`navbar-nav ${isMenuOpen ? 'active' : ''}`}>
-          <li><a href="#home" onClick={closeMenu}>Home</a></li>
-          <li><a href="#features" onClick={closeMenu}>Features</a></li>
-          <li><a href="#about" onClick={closeMenu}>About</a></li>
-          <li><a href="#contact" onClick={closeMenu}>Contact</a></li>
-          
-          {/* Mobile-only action buttons */}
-        
+          <li>
+            <Link to="/" onClick={closeMenu}>Home</Link>
+          </li>
+          <li>
+            <Link to="/prompt" onClick={closeMenu}>Prompts</Link>
+          </li>
+          <li>
+            <Link to="#features" onClick={closeMenu}>Features</Link>
+          </li>
+          <li>
+            <Link to="#about" onClick={closeMenu}>About</Link>
+          </li>
+          <li>
+            <Link to="#contact" onClick={closeMenu}>Contact</Link>
+          </li>
         </ul>
-        
-     
       </div>
     </nav>
   );
